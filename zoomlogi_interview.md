@@ -3,6 +3,16 @@
 - how do you think about scaling that
 
 
+## TODO
+
+- Extract relevant info from fedex
+  - shipment ID, origin, destination, status
+- Extract sensor data
+  - shipment ID, location, timestamp, temp
+- Create a sqlite database
+- Store data in database
+
+
 # Prompt email
 
 Hey Tim, 

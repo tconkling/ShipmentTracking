@@ -68,11 +68,39 @@ def get_onasset_data(bearer_token: str) -> Any:
     return response.json()
 
 
+def extract_fedex_address(data_json: Any) -> str:
+    try:
+        return f"{data_json["city"]}, {data_json["stateOrProvinceCode"]} ({data_json["countryCode"]})"
+    except KeyError:
+        return "UNKNOWN"
+
+def extract_fedex_scan_event(data_json: Any) -> Any:
+    return {
+        "date": data_json["date"],
+        "location": extract_fedex_address(data_json["scanLocation"])
+    }
+
+def extract_fedex_shipment_data(data_json: Any) -> Any:
+    track_results = data_json["output"]["completeTrackResults"][0]["trackResults"][0]
+    origin = track_results["shipperInformation"]["address"]
+    destination = track_results["recipientInformation"]["address"]
+    return {
+        "id": track_results["trackingNumberInfo"]["trackingNumber"],
+        "origin": extract_fedex_address(origin),
+        "destination": extract_fedex_address(destination),
+        "status": track_results["latestStatusDetail"]["description"],
+        "events": [extract_fedex_scan_event(event) for event in track_results["scanEvents"]]
+    }
+
+
 def main() -> None:
     bearer_token = get_fedex_bearer_token(FEDEX_CLIENT_ID, FEDEX_CLIENT_SECRET)
     tracking_data = get_fedex_tracking_data(tracking_number=FEDEX_TRACKING_NUMBER, bearer_token=bearer_token)
-    st.subheader("Tracking Data")
-    st.json(tracking_data)
+
+    st.subheader("Extracted Tracking Data")
+    st.json(extract_fedex_shipment_data(tracking_data))
+
+    # st.json(tracking_data)
 
     onasset_data = get_onasset_data(ONASSET_TOKEN)
     st.subheader("OnAsset Data")
