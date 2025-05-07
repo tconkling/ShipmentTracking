@@ -1,9 +1,10 @@
+from typing import Any
+
 from sqlalchemy import create_engine, Column, String, Integer, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Create a connection to a SQLite database
-# ':memory:' creates an in-memory database, or use a file path like 'sqlite:///database.db'
 engine = create_engine('sqlite:///database.db', echo=True)
 
 # Create a base class for declarative class definitions
@@ -20,6 +21,14 @@ class Shipment(Base):
     destination = Column(String, nullable=False)
     status = Column(String, nullable=False)
 
+    def to_json(self) -> Any:
+        return {
+            "id": self.id,
+            "origin": self.origin,
+            "destination": self.destination,
+            "status": self.status,
+        }
+
 class SensorEvent(Base):
     __tablename__ = 'sensorEvents'
 
@@ -29,6 +38,15 @@ class SensorEvent(Base):
     latitude = Column(Integer, nullable=True)
     longitude = Column(Integer, nullable=True)
     temp = Column(Integer, nullable=False)
+
+    def to_json(self) -> Any:
+        return {
+            "timestamp": str(self.timestamp),
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "temp": self.temp,
+        }
+
 
 def init_db():
     print("Initializing database...")
