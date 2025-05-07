@@ -3,13 +3,11 @@ from typing import Any
 
 import requests
 
-from app import db
+from app import db, config
 
 FEDEX_TRACKING_URL = "https://apis.fedex.com/track/v1/trackingnumbers"
 
 FEDEX_TOKEN_URL = "https://apis.fedex.com/oauth/token"
-FEDEX_CLIENT_ID = "l7d63c7891050f4a5782aee9775f916f53"
-FEDEX_CLIENT_SECRET = "3a7adcf8253545d887571456559b49b7"
 
 def _get_fedex_bearer_token(client_id: str, client_secret: str) -> str:
     headers = {
@@ -62,7 +60,7 @@ def _extract_fedex_scan_event(data_json: Any) -> Any:
 
 def create_shipment_record(tracking_number: str) -> db.Shipment:
     """Query the Fedex tracking endpoint and return a db.Shipment record for the given tracking number"""
-    bearer_token = _get_fedex_bearer_token(FEDEX_CLIENT_ID, FEDEX_CLIENT_SECRET)
+    bearer_token = _get_fedex_bearer_token(config.FEDEX_CLIENT_ID, config.FEDEX_CLIENT_SECRET)
     tracking_data = _get_fedex_tracking_data(tracking_number=tracking_number, bearer_token=bearer_token)
 
     track_results = tracking_data["output"]["completeTrackResults"][0]["trackResults"][0]

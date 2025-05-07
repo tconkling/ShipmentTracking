@@ -4,6 +4,8 @@
 $ pipenv install
 ```
 
+Then edit `app/config.py`, and enter your Fedex and Onasset creds
+
 ### Running
 
 ```bash
