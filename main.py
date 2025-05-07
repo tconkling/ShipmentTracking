@@ -1,10 +1,10 @@
 import json
-from typing import Any
+from typing import Any, List
 
 import requests
-import streamlit as st
 
 from app import db
+from app import util
 
 FEDEX_TRACKING_URL = "https://apis.fedex.com/track/v1/trackingnumbers"
 SHIPMENT_ID = "771298756318"
@@ -82,41 +82,60 @@ def extract_fedex_scan_event(data_json: Any) -> Any:
         "location": extract_fedex_address(data_json["scanLocation"])
     }
 
-def extract_fedex_shipment_data(data_json: Any) -> Any:
+def extract_fedex_shipment_data(data_json: Any) -> db.Shipment:
     track_results = data_json["output"]["completeTrackResults"][0]["trackResults"][0]
     origin = track_results["shipperInformation"]["address"]
     destination = track_results["recipientInformation"]["address"]
-    return {
-        "shipmentId": track_results["trackingNumberInfo"]["trackingNumber"],
-        "origin": extract_fedex_address(origin),
-        "destination": extract_fedex_address(destination),
-        "status": track_results["latestStatusDetail"]["description"],
-        "events": [extract_fedex_scan_event(event) for event in track_results["scanEvents"]]
-    }
+    return db.Shipment(
+        id=track_results["trackingNumberInfo"]["trackingNumber"],
+        origin=extract_fedex_address(origin),
+        destination=extract_fedex_address(destination),
+        status=track_results["latestStatusDetail"]["description"],
+    )
 
-def extract_sensor_data(shipment_id: str, data_json: Any) -> Any:
-    return [{
-        "shipmentId": shipment_id,
-        "latitude": event_data["latitude"],
-        "longitude": event_data["longitude"],
-        "timestamp": event_data["timeOfReport"],
-        "temp": event_data["temperatureC"]
-    } for event_data in data_json]
+def extract_sensor_data(shipment_id: str, data_json: Any) -> List[db.SensorEvent]:
+    return [db.SensorEvent(
+        shipment_id=shipment_id,
+        latitude=event_data["latitude"],
+        longitude=event_data["longitude"],
+        timestamp=util.str_to_datetime(event_data["timeOfReport"]),
+        temp=event_data["temperatureC"]
+    ) for event_data in data_json]
 
-def main() -> None:
+
+def populate_db() -> None:
     bearer_token = get_fedex_bearer_token(FEDEX_CLIENT_ID, FEDEX_CLIENT_SECRET)
     tracking_data = get_fedex_tracking_data(tracking_number=SHIPMENT_ID, bearer_token=bearer_token)
 
-    st.subheader("Extracted Tracking Data")
-    st.json(extract_fedex_shipment_data(tracking_data))
+    # Create or update the Shipment row:
+    with db.Session() as session:
+        try:
+            shipment_data = extract_fedex_shipment_data(tracking_data)
+            session.merge(shipment_data)
+            session.commit()
+            print(f"Added Shipment (id={shipment_data.id})")
+        except:
+            print("Failed to add Shipment")
+            session.rollback()
+            raise
 
     onasset_data = get_onasset_data(ONASSET_TOKEN)
-    st.subheader("Extracted OnAsset data")
-    st.json(extract_sensor_data(SHIPMENT_ID, onasset_data))
+    # Create or update sensor event rows:
+    with db.Session() as session:
+        try:
+            sensor_event_rows = extract_sensor_data(SHIPMENT_ID, onasset_data)
+            for sensor_event in sensor_event_rows:
+                session.merge(sensor_event)
+            session.commit()
+            print(f"Added {len(sensor_event_rows)} SensorEvents")
+        except:
+            print("Failed to add SensorEvents")
+            session.rollback()
+            raise
 
+def main() -> None:
     db.init_db()
-
-
+    populate_db()
 
 if __name__ == "__main__":
     main()

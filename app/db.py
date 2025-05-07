@@ -26,8 +26,8 @@ class SensorEvent(Base):
     id = Column(Integer, primary_key=True)
     shipment_id = Column(String, ForeignKey('shipment.id'))
     timestamp = Column(DateTime, nullable=False)
-    latitude = Column(Integer, nullable=False)
-    longitude = Column(Integer, nullable=False)
+    latitude = Column(Integer, nullable=True)
+    longitude = Column(Integer, nullable=True)
     temp = Column(Integer, nullable=False)
 
 def init_db():
