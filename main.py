@@ -6,8 +6,6 @@ from app import db, fedex, onasset
 
 app = Flask(__name__)
 
-SHIPMENT_ID = "771298756318"
-
 def populate_db(shipment_id: str) -> None:
     """Populate the database with Shipment and SensorEvent data for the given shipment_id"""
     # Create/update the Shipment row:
