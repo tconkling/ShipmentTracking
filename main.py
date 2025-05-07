@@ -2,6 +2,7 @@ import json
 from typing import Any
 
 import requests
+import streamlit as st
 
 FEDEX_TRACKING_URL = "https://apis.fedex.com/track/v1/trackingnumbers"
 FEDEX_TRACKING_NUMBER = "771298756318"
@@ -70,10 +71,12 @@ def get_onasset_data(bearer_token: str) -> Any:
 def main() -> None:
     bearer_token = get_fedex_bearer_token(FEDEX_CLIENT_ID, FEDEX_CLIENT_SECRET)
     tracking_data = get_fedex_tracking_data(tracking_number=FEDEX_TRACKING_NUMBER, bearer_token=bearer_token)
-    print(json.dumps(tracking_data, indent=2))
+    st.subheader("Tracking Data")
+    st.json(tracking_data)
 
     onasset_data = get_onasset_data(ONASSET_TOKEN)
-    print(json.dumps(onasset_data, indent=2))
+    st.subheader("OnAsset Data")
+    st.json(onasset_data)
 
 
 
