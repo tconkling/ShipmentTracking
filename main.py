@@ -4,6 +4,8 @@ from typing import Any
 import requests
 import streamlit as st
 
+from app import db
+
 FEDEX_TRACKING_URL = "https://apis.fedex.com/track/v1/trackingnumbers"
 SHIPMENT_ID = "771298756318"
 
@@ -111,6 +113,8 @@ def main() -> None:
     onasset_data = get_onasset_data(ONASSET_TOKEN)
     st.subheader("Extracted OnAsset data")
     st.json(extract_sensor_data(SHIPMENT_ID, onasset_data))
+
+    db.init_db()
 
 
 
