@@ -5,7 +5,7 @@ import requests
 import streamlit as st
 
 FEDEX_TRACKING_URL = "https://apis.fedex.com/track/v1/trackingnumbers"
-FEDEX_TRACKING_NUMBER = "771298756318"
+SHIPMENT_ID = "771298756318"
 
 FEDEX_TOKEN_URL = "https://apis.fedex.com/oauth/token"
 FEDEX_CLIENT_ID = "l7d63c7891050f4a5782aee9775f916f53"
@@ -76,7 +76,7 @@ def extract_fedex_address(data_json: Any) -> str:
 
 def extract_fedex_scan_event(data_json: Any) -> Any:
     return {
-        "date": data_json["date"],
+        "timestamp": data_json["date"],
         "location": extract_fedex_address(data_json["scanLocation"])
     }
 
@@ -85,26 +85,32 @@ def extract_fedex_shipment_data(data_json: Any) -> Any:
     origin = track_results["shipperInformation"]["address"]
     destination = track_results["recipientInformation"]["address"]
     return {
-        "id": track_results["trackingNumberInfo"]["trackingNumber"],
+        "shipmentId": track_results["trackingNumberInfo"]["trackingNumber"],
         "origin": extract_fedex_address(origin),
         "destination": extract_fedex_address(destination),
         "status": track_results["latestStatusDetail"]["description"],
         "events": [extract_fedex_scan_event(event) for event in track_results["scanEvents"]]
     }
 
+def extract_sensor_data(shipment_id: str, data_json: Any) -> Any:
+    return [{
+        "shipmentId": shipment_id,
+        "latitude": event_data["latitude"],
+        "longitude": event_data["longitude"],
+        "timestamp": event_data["timeOfReport"],
+        "temp": event_data["temperatureC"]
+    } for event_data in data_json]
 
 def main() -> None:
     bearer_token = get_fedex_bearer_token(FEDEX_CLIENT_ID, FEDEX_CLIENT_SECRET)
-    tracking_data = get_fedex_tracking_data(tracking_number=FEDEX_TRACKING_NUMBER, bearer_token=bearer_token)
+    tracking_data = get_fedex_tracking_data(tracking_number=SHIPMENT_ID, bearer_token=bearer_token)
 
     st.subheader("Extracted Tracking Data")
     st.json(extract_fedex_shipment_data(tracking_data))
 
-    # st.json(tracking_data)
-
     onasset_data = get_onasset_data(ONASSET_TOKEN)
-    st.subheader("OnAsset Data")
-    st.json(onasset_data)
+    st.subheader("Extracted OnAsset data")
+    st.json(extract_sensor_data(SHIPMENT_ID, onasset_data))
 
 
 
